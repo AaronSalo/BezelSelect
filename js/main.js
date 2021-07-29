@@ -29,15 +29,16 @@ function onHWKey(e) {
 
 function onTouch(e) {
 
+    mouseX = e.touches[0].clientX;
+    mouseY = e.touches[0].clientY;
+
     if(touchEnded && !enableTrial) {
         //make sure the user takes their finger off the screen (touchEnded)
         //and if we are inbetween trials, this touch will start the next trial
 
         if(e.clientY > yDivider) //disable touches that are above yDivider so we can press the force exit button
             onTrialStart();
-    } else {
-        mouseX = e.touches[0].clientX;
-        mouseY = e.touches[0].clientY;    
+    } else {  
         
         //check if we are inside the interactable area
         if(watch.insideInteractive(mouseX, mouseY) ) {
@@ -45,6 +46,7 @@ function onTouch(e) {
             projPoint = project(mouseX, mouseY);
         }
     }
+    touchEnded = false; //show there is a touch in progress
 }
 
 function onTouchMove(e) {
@@ -58,8 +60,9 @@ function onTouchMove(e) {
     }
 }
 
+var touchEnded = true; //start as true
 function onTouchEnd() {
-    touchEnded = true;
+    touchEnded = true; //just set a flag that our touch has ended
 }
 
 function onMouseMove(e) {
@@ -167,7 +170,7 @@ class Button {
         //check if we clicked the button - not very elegant but works nicely
         //only issue i have observed is that functions may be called multiple times
         //using buttons&indicators solves this so i didnt bother fixing
-        if(mouseDown) {
+        if(mouseDown || !touchEnded) {
             if(mouseX > this.x && mouseX < this.x + this.width) {
                 if(mouseY > this.y && mouseY < this.y + this.height) {
                     this.clicked = true;
@@ -1000,18 +1003,59 @@ function save() {
         console.log(trialJson);
         jsonString = JSON.stringify(trialJson);
         //TO DO: SEND TO A FILE
+        writeData(jsonString);
         saved = true;
         console.log("Save complete. Results:\n\n");
         //console.log(trialJson);
     } //if
 } //save
 
+//Using https://stackoverflow.com/questions/47848248/how-to-write-new-info-to-json-file-in-tizen-studio
+//write the data to a separate file
+//considered appending to a single file, but this seems safer
 function writeData(jsonString) {
+    if(tizen.ppm.checkPermission("http://tizen.org/privilege/mediastorage") == "PPM_ALLOW" ) {
+        console.log("Creating file for participant." );
+        tizen.filesystem.resolve("documents", function(dir) {
+            dataFile = dir.createFile('Participant_' + PID +  '.json');
+            
+            dataFile.openStream(
+                "w",
+                function(fs) {
+                    console.log("Writing Data to file...");
+                    fs.write(jsonString);
+                    fs.close();
+                    console.log("Done! File closed");
+                }, function(e) {
+                    console.log("Error on writeData:\n" + e.message);
+                }, "UTF-8" );
+        });
+    } else {
+        console.log("Requesting file access");
+        tizen.ppm.requestPermission("http://tizen.org/privilege/mediastorage",
+                onsuccessPermission, onErrorPermission);
+    }
+}
+
+function onsuccessPermissionWrite(jsonString) {
+    console.log("Obtained permission. Creating file for participant." );
     tizen.filesystem.resolve("documents", function(dir) {
         dataFile = dir.createFile('Participant_' + PID +  '.json');
-        // https://stackoverflow.com/questions/47848248/how-to-write-new-info-to-json-file-in-tizen-studio  -- this will finish the saving
+        
+        dataFile.openStream(
+            "w",
+            function(fs) {
+                console.log("Writing Data to file...");
+                fs.write(jsonString);
+                fs.close();
+                console.log("Done! File closed");
+            }, function(e) {
+                console.log("Error on writeData:\n" + e.message);
+            }, "UTF-8" );
     });
 }
+
+
 
 /*
 * @name setupFile 
@@ -1020,12 +1064,12 @@ function writeData(jsonString) {
 * @return none
 */
 function setupFile() {
-    console.log("setting up file");
+    console.log("Requesting file access.");
     try {
         tizen.ppm.requestPermission("http://tizen.org/privilege/mediastorage",
                 onsuccessPermission, onErrorPermission);
     } catch(err) {
-        console.log(err.message);
+        console.log("Error in setupFile: Problem occurred when asking for file permission "  + err.message);
     }
 } // end setupFile
 
@@ -1036,7 +1080,7 @@ function setupFile() {
 * @return none
 */
 function onErrorPermission(e) {
-    console.log('onErrorPermission' + e);
+    console.log('Failure to obtain file permission' + e);
 } // end onErrorPermission
 
 /*
@@ -1046,16 +1090,7 @@ function onErrorPermission(e) {
 * @return none
 */
 function onsuccessPermission() {
-    console.log("1: ");
-
-    tizen.filesystem.resolve('documents',function(dir) {
-        // create new data json and name it
-        dataFile = dir.createFile('Experiment_' + PID +  '.json');
-        console.log("dataFile: " + dataFile);
-
-    }, function(e) {
-        console.log("Error" + e.message);
-    }, "rw");
+    console.log("Obtained file access");
 } // end onsuccessPermission
 
 /* Project
@@ -1721,6 +1756,5 @@ function update() {
 
     }, 1000 / framesPerSecond);
 }
-setupFile();
 requestAnimationFrame(update);
 //draw();
