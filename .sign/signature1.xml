@@ -9,13 +9,13 @@ WalH7ydf/g==</DigestValue>
 </Reference>
 <Reference URI="README.md">
 <DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha512"></DigestMethod>
-<DigestValue>2HGEZ7sRMFtghPD0SUTNb86I3LpRJ3KpfmIa86n8eIafDRH6crIZ0NhfeWVqEY3WOnowd/qoWNm6
-vjUPtGXtSg==</DigestValue>
+<DigestValue>9GWLX+yZte2rtkzEoiDuuFfVhlsAqMwFBWEnNFVD5NuLTbQkgcG+60bY9LrkR6n6/QHyrc3U7a/L
+Fgjxg9Icmg==</DigestValue>
 </Reference>
 <Reference URI="author-signature.xml">
 <DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha512"></DigestMethod>
-<DigestValue>VrAjpsj/RqXz/IJw5YDazFeEtBTyYCeB+9CtSpSbXmKkZCI2dWuuA/D/r9tM7ShFziJLipCdBEtI
-uTOOty0fsg==</DigestValue>
+<DigestValue>Ls0ydOUZbOLLZWx8SJkHeFYJhxfAnQE4ETpxYMrbyKQlrGcV7SBnKtaUU4poSo2TUuB6VH2JHu95
+A9R9BtYtww==</DigestValue>
 </Reference>
 <Reference URI="config.xml">
 <DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha512"></DigestMethod>
@@ -39,8 +39,8 @@ i7A/TBc0Pg==</DigestValue>
 </Reference>
 <Reference URI="js%2Fmain.js">
 <DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha512"></DigestMethod>
-<DigestValue>xUkAlnvPn+v81iiLv74wlR+Ovg94DrJRAIIZEIMtAYAs1lGVfOzr63Y12QSXeghV9m6deQV1k5Vm
-jCW73xhdjQ==</DigestValue>
+<DigestValue>WCTky8Rl4s6l9+NRKvyUyPZy2N3KLIaD1WhRUmHDK8iptIgBIrOTYJb0y1+9zpNglNbwdyJFfYyo
+nHbQ5dBjiw==</DigestValue>
 </Reference>
 <Reference URI="js%2Fmain1.js">
 <DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha512"></DigestMethod>
@@ -57,11 +57,11 @@ GyvKX9Snig==</DigestValue>
 </Reference>
 </SignedInfo>
 <SignatureValue>
-VCwS7Lrb+ov3VS8BS6wsWZ/p/JMXp+1KEC76Ucvlj+L2vU7lw7M75v8FbejMTCeQJYoPhTfBvCfT
-G3x+hxucujbhaN8WiU2VPSZXr4xY7lu6TYC1aUgPTON9T+iAuoCpJnkGQrNW9k09OnmoeuyM2Pyq
-7LSSBogofWBOVibIFzn8tp1wcubPtEo7EZER9euAn7GmtRqZdV4O2mCtKpgOZ8OC/ikhpITXjotA
-XT4z+PiXf0yo79Qhb0oifm7KkxbDE6Db5i7ZSyXoqIBWJdgHqrznGVU5HBhai7tIJadAKzhFz8m1
-EQUiby2e/ffXCPPf7NVkbCk3hU7LwjnD6Aj4Rw==
+jtt6pEPCJc4i9YVkYcdTXyE8DmkVQBh4+3XcKVeoqkdRPYMP8COOCBsyHAvtSEYz/wUN6I9W3EAm
+LV27vqU/eG/fwsRXBVEKNexTlroQDAUbmJXmanGhc39s8SmSdOh6ZWcPqDN3kdp0NM9E1v2FeqM3
+kp68MUJqfaXMpJdbepvm8uWfALnYfxzW6S8fojY/slYEM6PkUjMrtw9iKwHb/aYbejwmqnuozBgE
+GmBxXMe33HcjlwRMCn4wQQXekq3Jwwjh4ElJZXSYfaAq/+8wH5pJB77PLQFzaUp6hcMGsgQSSHZT
+tIMOSfiX9Al7yf0NgqIEBLpzmUkx73yWlqhPIg==
 </SignatureValue>
 <KeyInfo>
 <X509Data>

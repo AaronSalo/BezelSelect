@@ -9,7 +9,7 @@ var ctx = canvas.getContext("2d");
 canvas.addEventListener("mousedown", onMouseDown);
 canvas.addEventListener("mouseup", onMouseUp);
 document.addEventListener("keydown", onKeyDown);
-canvas.addEventListener("mousemove", onMouseMove);
+//canvas.addEventListener("mousemove", onMouseMove);
 
 //for mobile
 canvas.addEventListener("touchmove", onTouchMove);
@@ -113,9 +113,14 @@ function onKeyDown(e) {
         message = "resetting";
         reset();
     }else if (e.key == 'e') { //cycle interaction styles
-        message = "Changing to next style"
+        message = "Changing to next style";
         nextStyle();  
-    } else {
+    } else if (e.key == 'q') {
+        message = "ending experiment";  
+        endExperiment();
+    } else if (e.key == 's') {
+        save();   
+    }else {
         message = "Key not bound - press \"d\" to switch to DEBUG mode";
     }
 
@@ -365,7 +370,9 @@ The graph will resize and select points (see draw function) based on input
 */
 class Graph {
 
-    constructor(x, y, width, height, numPoints, colour) {
+    constructor(x, y, width, height, numPoints, colour, label) {
+        this.label = label; //name for the graph
+        
         this.x = x;
         this.y = y;
         this.width = width;
@@ -578,15 +585,24 @@ class Graph {
     }
 } //end of graph class
 
+//the status of the segment - so we can see if we need to generate this segment still, or whether the user failed/succeeded in that segment
+const segmentStatus = {"NOT_GENERATED":1, "FAILURE":2, "SUCCESS":3}
+Object.freeze(segmentStatus)
 
 //this is for this specific experiment
 class DynamicGraph extends Graph {
 
-    constructor(x, y, numPoints, colour) {
-        super(x, y , 0, 0, numPoints, colour);
+    constructor(x, y, numPoints, colour, label) {
+        super(x, y , 0, 0, numPoints, colour, label);
         this.width = 250;
         this.height = 50;
         this.graphHeight = this.height - (this.padding *2);
+
+        this.numSegments = 4; //how many segments do we want the poi to be generated in
+        //Will generate one poi in each segment before increasing the number of points
+        this.segmentSelected = -1; //between 0 and numSegments-1 => if negative, no point to select
+        this.segmentGenerated = []; //indicates which segment we have generated a point in (bool)
+        this.resetSegments(); //set all to false
 
         this.incrementedNumPoints = false
     }
@@ -612,6 +628,53 @@ class DynamicGraph extends Graph {
             this.drawSelection(ratio);
     }   
 
+    //resets all the values in segmentGenerated to false
+    //will be called whenever we increase or decrease numPoints (& upon instantiation)
+    resetSegments() {
+        var i;
+        for(i = 0; i < this.numSegments; i ++ ){
+            this.segmentGenerated[i] = segmentStatus.NOT_GENERATED;
+        }
+    }
+
+
+    //generate a poi (only if we are told by another external function)
+    generatePOI() {
+        var pointsPerSegment = this.numPoints/this.numSegments; //how many points are there in a segment
+        console.log(pointsPerSegment + " points per segment");
+        var numSegmentsGenerated = this.countSegmentsStatus(segmentStatus.NOT_GENERATED);
+        console.log(numSegmentsGenerated + " segments have not been generated");
+        var segment = Math.floor(Math.random() * numSegmentsGenerated) //0 - the number of segments remaining
+        console.log("Generating at the " + segment + " free segment");
+
+        //go through and choose the an available segment
+        //eg. if segment is 2, and we generated a segment at position 2, the new segment will be placed at pos 3
+        var count = 1;
+        for(var i = 0; i < this.numSegments; i++) {
+            if(count >= segment && this.segmentGenerated[i] == segmentStatus.NOT_GENERATED) {
+                this.segmentSelected = i;
+                break;
+            } else 
+                count ++;
+        }
+        console.log("Generated at segment " + this.segmentSelected);
+
+        this.poi = Math.floor((pointsPerSegment * this.segmentSelected) +  Math.floor(Math.random() * pointsPerSegment) ); //point we want to select 
+        console.log("point generated at pos " + this.poi);
+        poiData.push(new PoiInfo(numTrialsCompleted, this.label, this.poi, this.segmentSelected) );
+    }
+
+    //count the number of segments with the status indicated
+    //takes segmentStatus as input (NOT_GENERATED, SUCCESS, FAILURE) see definition
+    countSegmentsStatus(status) {
+        var count = 0;
+        for(var i = 0; i < this.numSegments; i++ ) {
+            if(this.segmentGenerated[i] == status)
+                count ++;
+        }
+        return count;
+    }
+
     drawPoints() {
         
         ctx.fillStyle = this.colour;
@@ -636,6 +699,7 @@ class DynamicGraph extends Graph {
             ctx.stroke();
         }
     } //drawPoints
+
 
         //figure out which element is selected, and draw something to indicate we have selected it, along with displaying the relevant data
     //@ratio - the ratio along the interacton area: corresponds to where
@@ -683,30 +747,40 @@ class DynamicGraph extends Graph {
         if(this.poiSelected) { 
             var complete = indicator.update(this.poiSelected);
 
+
+            //mark the segment as fail or success
+            if(timingIndicator.complete)//failure
+                this.segmentGenerated[this.segmentSelected] = segmentStatus.FAILURE;
+            else //success
+                this.segmentGenerated[this.segmentSelected] = segmentStatus.SUCCESS;
+
             //edit the number of points in the graph
-            if(complete && !this.incrementedNumPoints) {
-                if(timingIndicator.complete) {
+            if( complete && this.countSegmentsStatus(segmentStatus.NOT_GENERATED) == 0 && !this.incrementedNumPoints) {
+                if(this.countSegmentsStatus(segmentStatus.FAILURE) >= 2 ) { //user failed more than twice with this many points
+                    
                     if(this.numPoints > 2) //a minimum of 2 points
                         this.numPoints --;
 
-                        //stop condition stuff
-                        if(this.stopCond[this.numPoints] == undefined) {
-                            console.log("initializing stopcond at " + this.numPoints);
-                            this.stopCond[this.numPoints] = 1;
-                        } else {
-                            this.stopCond[this.numPoints] ++;
-                            console.log("Stop condition at pos " + this.numPoints + " has increased to " + this.stopCond[this.numPoints] );
-                        }
+                    //stop condition stuff
+                    if(this.stopCond[this.numPoints] == undefined) {
+                        console.log("initializing stopcond at " + this.numPoints);
+                        this.stopCond[this.numPoints] = 1;
+                    } else {
+                        this.stopCond[this.numPoints] ++;
+                        console.log("Stop condition at pos " + this.numPoints + " has increased to " + this.stopCond[this.numPoints] );
+                    }
 
-                        //if we have reached the maximum number of decreasing revisits - set a flag (and disable graph from getting pois - see choosePoi())
-                        if(this.stopCond[this.numPoints] >= this.stopCondMax) {
-                            this.stopCondReached = true;
-                            console.log("Stop condition reached for " + this.label);
-                        }
+                    //if we have reached the maximum number of decreasing revisits - set a flag (and disable graph from getting pois - see choosePoi())
+                    if(this.stopCond[this.numPoints] >= stopCondMax) {
+                        this.stopCondReached = true;
+                        console.log("Stop condition reached for " + this.label);
+                    }
 
                 } else {
+                    console.log("Increasing points in graph");
                     this.numPoints ++;
                 }
+                this.resetSegments();
                 this.incrementedNumPoints = true; //prevents number of points changing rapidly after selection
             }
         }
@@ -947,6 +1021,15 @@ class TrialInfo {
     }  
 }
 
+class PoiInfo {
+    constructor(trialNum, graphNum, poiLoc, segment) {
+        this.trialNum = trialNum;
+        this.graphNum = graphNum;
+        this.poiLoc = poiLoc; //the index the poi is at
+        this.segment = segment; //which segment is the poi in
+    }
+}
+
 var saved = false;
 function save() {
     if(!saved) {
@@ -981,6 +1064,17 @@ function save() {
             G3Points.push(trialData[i].G2Points);
         }
 
+        trialNum = [];
+        var graphNum = []; //which graph the poi is in
+        var poiLoc = []; //the exact index the poi is in hte graph
+        var segment = []; //which segment the poi is inside in the graph
+        for(i = 0; i < poiData.length; i++) {
+            trialNum.push(poiData[i].trialNum);
+            graphNum.push(poiData[i].graphNum);
+            poiLoc.push(poiData[i].poiLoc);
+            segment.push(poiData[i].segment);
+        }
+
         //throw it all into a json
         var trialJson = {
             participant:{
@@ -997,6 +1091,12 @@ function save() {
                     "G1Points":G1Points,
                     "G2Points":G2Points,
                     "G3Points":G3Points,
+                },
+                "poiInfo":{
+                    "trialNum":trialNum,
+                    "graphNum":graphNum,
+                    "poiLoc":poiLoc,
+                    "segment":segment,
                 }
             }
         }
@@ -1006,7 +1106,7 @@ function save() {
         writeData(jsonString);
         saved = true;
         console.log("Save complete. Results:\n\n");
-        //console.log(trialJson);
+        console.log(trialJson);
     } //if
 } //save
 
@@ -1235,18 +1335,21 @@ function choosePOI() {
         switch(graphToSelect) {
             case 0:
                 if(!G1.stopCondReached) {
+                    console.log("Generating POI at G1");
                     G1.generatePOI();
                     selectedPoint = true;
                 }
                 break;
             case 1: 
                 if(!G2.stopCondReached) {
+                    console.log("Generating POI at G2");
                     G2.generatePOI();
                     selectedPoint = true;
                 }
                 break;
             case 2:
                 if(!G3.stopCondReached) {
+                    console.log("Generating POI at G3");
                     G3.generatePOI();
                     selectedPoint = true;
                 }
@@ -1378,12 +1481,13 @@ function makeid(length) {
 var trialStartTime;
 var trialData = [];
 var savedTouchPoints = [];
+var poiData = [];
 var sampleRate = 1000/20; //how much time should we have between touchPoint captures
 var lastTouchPointLog = -1000000000;
 var participantID = "P0_" + makeid(5);
 
 var numTrials = 1000000000;
-var stopCondMax = 1; //how many times we can increase the stopCond at a number of points before disabling this graph
+var stopCondMax = 2; //how many times we can increase the stopCond at a number of points before disabling this graph
 
 var X = 0; //for readability
 var Y = 1; //for readability
@@ -1463,9 +1567,9 @@ var ySpacing = 60;
 
 var startingNumPoints = 10;
 
-let G1 = new DynamicGraph(xPos, yPos, startingNumPoints, innerArcColour); //pie chart divided 
-let G2 = new DynamicGraph(xPos, yPos + ySpacing, startingNumPoints, middleArcColour); //bar graph
-let G3 = new DynamicGraph(xPos, yPos + (ySpacing *2) , startingNumPoints, outerArcColour); //line graph
+let G1 = new DynamicGraph(xPos, yPos, startingNumPoints, innerArcColour, "G1"); //pie chart divided 
+let G2 = new DynamicGraph(xPos, yPos + ySpacing, startingNumPoints, middleArcColour, "G2"); //bar graph
+let G3 = new DynamicGraph(xPos, yPos + (ySpacing *2) , startingNumPoints, outerArcColour, "G3"); //line graph
 
 
 
@@ -1474,7 +1578,7 @@ var indicatorPosY = 30;
 var indicator = new Indicator(indicatorPosX, indicatorPosY, 0.5, ""); 
 
 var lastCompleteTime;
-var timeToComplete = 3;
+var timeToComplete = 2;
 var timingIndicator = new TimingIndicator(indicatorPosX + 70, indicatorPosY, timeToComplete, "", null); 
 
 choosePOI();
@@ -1562,7 +1666,7 @@ function restartExperiment() {
     enableTrial = false;
     restartIndicator.resetTimer();
     drawSettingsMenu = false;
-    endExperiementIndicator.resetTimer();
+    endExperimentIndicator.resetTimer();
     experimentComplete = false;
 
     participantIDNum = parseInt(participantID.charAt(1) ) + 1;
@@ -1573,10 +1677,11 @@ function restartExperiment() {
     G1 = new DynamicGraph(xPos, yPos, startingNumPoints, innerArcColour); //pie chart divided 
     G2 = new DynamicGraph(xPos, yPos + ySpacing, startingNumPoints, middleArcColour); //bar graph
     G3 = new DynamicGraph(xPos, yPos + (ySpacing *2) , startingNumPoints, outerArcColour); //line graph
-
+    choosePOI()
     //reset the data arrays
     trialData = [];
     savedTouchPoints = [];
+    poiData = [];
     saved = false;
 }
 
