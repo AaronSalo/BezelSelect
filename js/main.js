@@ -119,7 +119,7 @@ function onKeyDown(e) {
         message = "ending experiment";  
         endExperiment();
     } else if (e.key == 's') {
-        message = "Attempting save...");
+        message = "Attempting save...";
         save();   
     }else {
         message = "Key not bound - press \"d\" to switch to DEBUG mode";
@@ -1122,16 +1122,16 @@ function writeData(jsonString) {
             var dataFile, newDir;
             tizen.filesystem.resolve('documents', function(dir) {
                 console.log("in resolve statement");
-                newDir = dir.createDirectory("newDir");
-                dataFile = newDir.createFile('Participant_' + PID +  '.txt');
+                newDir = dir.createDirectory("Experiments");
+                console.log("Created file");
+                dataFile = newDir.createFile('Participant_' + participantID +  '.txt');
                 console.log("successfully created file");
-                console.log("dataFile: " + dataFile);
 
                 dataFile.openStream(
                     "w",
                     function(fs) {
                         console.log("Writing Data to file...");
-                        fs.write("THIS IS A TEST>>>> PLEASE WRITE"); //fs.write(jsonString);
+                        fs.write(jsonString); //fs.write(jsonString);
                         fs.close();
                         console.log("Done! File closed");
                     }, function(e) {
