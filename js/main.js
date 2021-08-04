@@ -119,6 +119,7 @@ function onKeyDown(e) {
         message = "ending experiment";  
         endExperiment();
     } else if (e.key == 's') {
+        message = "Attempting save...");
         save();   
     }else {
         message = "Key not bound - press \"d\" to switch to DEBUG mode";
@@ -1033,8 +1034,8 @@ class PoiInfo {
 var saved = false;
 function save() {
     if(!saved) {
+        saved = true;
         console.log("Beginning save.... ");
-
         //construct the json object for this participant
         var touchPointX = [];
         var touchPointY = [];
@@ -1104,8 +1105,7 @@ function save() {
         jsonString = JSON.stringify(trialJson);
         //TO DO: SEND TO A FILE
         writeData(jsonString);
-        saved = true;
-        console.log("Save complete. Results:\n\n");
+        console.log("Results:\n\n");
         console.log(trialJson);
     } //if
 } //save
@@ -1115,44 +1115,64 @@ function save() {
 //considered appending to a single file, but this seems safer
 function writeData(jsonString) {
     if(tizen.ppm.checkPermission("http://tizen.org/privilege/mediastorage") == "PPM_ALLOW" ) {
-        console.log("Creating file for participant." );
-        tizen.filesystem.resolve("documents", function(dir) {
-            dataFile = dir.createFile('Participant_' + PID +  '.json');
-            
-            dataFile.openStream(
-                "w",
-                function(fs) {
-                    console.log("Writing Data to file...");
-                    fs.write(jsonString);
-                    fs.close();
-                    console.log("Done! File closed");
-                }, function(e) {
-                    console.log("Error on writeData:\n" + e.message);
-                }, "UTF-8" );
-        });
+        console.log("Already ahve permission.... going ahead with save" );
+            //we SHOULD have permission now
+            console.log("TRYING TO SAVE");
+            var path = 'experiment_'+makeid(3);
+            var dataFile, newDir;
+            tizen.filesystem.resolve('documents', function(dir) {
+                console.log("in resolve statement");
+                newDir = dir.createDirectory("newDir");
+                dataFile = newDir.createFile('Participant_' + PID +  '.txt');
+                console.log("successfully created file");
+                console.log("dataFile: " + dataFile);
+
+                dataFile.openStream(
+                    "w",
+                    function(fs) {
+                        console.log("Writing Data to file...");
+                        fs.write("THIS IS A TEST>>>> PLEASE WRITE"); //fs.write(jsonString);
+                        fs.close();
+                        console.log("Done! File closed");
+                    }, function(e) {
+                        console.log("Error on writeData:\n" + e.message);
+                    }, "UTF-8" );
+            });
+        console.log("DONE? DID IT WORK?");
+
     } else {
         console.log("Requesting file access");
         tizen.ppm.requestPermission("http://tizen.org/privilege/mediastorage",
-                onsuccessPermission, onErrorPermission);
+                onsuccessPermissionWrite, onErrorPermission);
     }
+
 }
 
-function onsuccessPermissionWrite(jsonString) {
-    console.log("Obtained permission. Creating file for participant." );
-    tizen.filesystem.resolve("documents", function(dir) {
-        dataFile = dir.createFile('Participant_' + PID +  '.json');
-        
+function onsuccessPermissionWrite() {
+    //we SHOULD have permission now
+    console.log("TRYING TO SAVE");
+    var path = 'experiment_'+makeid(3);
+    var dataFile, newDir;
+    tizen.filesystem.resolve('documents', function(dir) {
+        console.log("in resolve statement");
+        newDir = dir.createDirectory("newDir");
+        dataFile = newDir.createFile('Participant_' + PID +  '.txt');
+        console.log("successfully created file");
+        console.log("dataFile: " + dataFile);
+
         dataFile.openStream(
             "w",
             function(fs) {
                 console.log("Writing Data to file...");
-                fs.write(jsonString);
+                fs.write("THIS IS A TEST>>>> PLEASE WRITE"); //fs.write(jsonString);
                 fs.close();
                 console.log("Done! File closed");
             }, function(e) {
                 console.log("Error on writeData:\n" + e.message);
             }, "UTF-8" );
     });
+   console.log("DONE? DID IT WORK?");
+
 }
 
 
@@ -1164,12 +1184,16 @@ function onsuccessPermissionWrite(jsonString) {
 * @return none
 */
 function setupFile() {
-    console.log("Requesting file access.");
-    try {
-        tizen.ppm.requestPermission("http://tizen.org/privilege/mediastorage",
-                onsuccessPermission, onErrorPermission);
-    } catch(err) {
-        console.log("Error in setupFile: Problem occurred when asking for file permission "  + err.message);
+    if(tizen.ppm.checkPermission("http://tizen.org/privilege/mediastorage") == "PPM_ALLOW" ) {
+        console.log("Already ahve permission.... " );
+    } else {
+        console.log("Requesting file access.");
+        try {
+            tizen.ppm.requestPermission("http://tizen.org/privilege/mediastorage",
+                    onsuccessPermission, onErrorPermission);
+        } catch(err) {
+            console.log("Error in setupFile: Problem occurred when asking for file permission "  + err.message);
+        }
     }
 } // end setupFile
 
@@ -1861,5 +1885,6 @@ function update() {
 
     }, 1000 / framesPerSecond);
 }
+setupFile();
 requestAnimationFrame(update);
 //draw();
