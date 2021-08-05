@@ -22,7 +22,7 @@ document.addEventListener('tizenhwkey', onHWKey);
 
 function onHWKey(e) {
     if(e.keyName == "back") {
-        nextStyle();
+        checkEnableTrial();
     }
 }
 
@@ -32,13 +32,7 @@ function onTouch(e) {
     mouseX = e.touches[0].clientX;
     mouseY = e.touches[0].clientY;
 
-    if(touchEnded && !enableTrial) {
-        //make sure the user takes their finger off the screen (touchEnded)
-        //and if we are inbetween trials, this touch will start the next trial
-
-        if(e.clientY > yDivider) //disable touches that are above yDivider so we can press the force exit button
-            onTrialStart();
-    } else {  
+    if(enableTrial)  {  
         
         //check if we are inside the interactable area
         if(watch.insideInteractive(mouseX, mouseY) ) {
@@ -82,13 +76,11 @@ function onMouseUp() {
     mouseDown = false;
 }
 
-var yDivider = 150; // disable resetting 
+
 function onMouseDown(e) {
     mouseDown = true;
-    if(!enableTrial) {
-        if(e.clientY > yDivider) //disable touches that are above yDivider so we can press the force exit button
-            onTrialStart();
-    } else {
+
+    if(enableTrial) {
         mouseX = e.clientX;
         mouseY = e.clientY;
         
@@ -117,10 +109,13 @@ function onKeyDown(e) {
         nextStyle();  
     } else if (e.key == 'q') {
         message = "ending experiment";  
-        endExperiment();
+        enableExperimentComplete();
     } else if (e.key == 's') {
         message = "Attempting save...";
         save();   
+    } else if( e.key == 'n') {
+        message = "Next trial";
+        checkEnableTrial();   
     }else {
         message = "Key not bound - press \"d\" to switch to DEBUG mode";
     }
@@ -134,6 +129,13 @@ function onKeyDown(e) {
 function onTrialStart() {
     trialStartTime = Date.now();    
     enableTrial = true;
+}
+
+
+//checks if we should enable the trial or not
+function checkEnableTrial() {
+    if(!enableTrial)
+        onTrialStart()
 }
 
 //a button - simple as that
@@ -829,7 +831,7 @@ class Indicator {
         this.timeToComplete = timeToComplete; //how many seconds to complete
         this.timeSelected = 0; //how long has it been selected
 
-        this.completeLength = 0.4; //how long to hold on the complete
+        this.completeLength = 0.1; //how long to hold on the complete
         this.completeElapsed = 0;
 
         this.colour = "white";
@@ -949,6 +951,7 @@ class TimingIndicator extends Indicator {
         if(this.func != null) {
             this.func();
         }
+        this.resetTimer();
     }
 }
 
@@ -1082,6 +1085,7 @@ function save() {
         var trialJson = {
             participant:{
                 "PID":participantID,
+                "experimentComplete":experimentComplete,
                 "touchPoints":{
                     "touchPointX":touchPointX,
                     "touchPointY":touchPointY,
@@ -1218,7 +1222,7 @@ function project(x , y ) {
 
         //save the touchpoint if enought time has passed
         if(Date.now() - lastTouchPointLog > sampleRate && enableTrial && !experimentComplete) {
-            savedTouchPoints.push(new TouchPoint(x, y, numTrialsCompleted) );
+            savedTouchPoints.push(new TouchPoint(Math.round(x), Math.round(y), numTrialsCompleted) );
             lastTouchPointLog = Date.now();
             console.log("touch logged");
         }
@@ -1262,7 +1266,7 @@ function project(x , y ) {
         innerRatio = (angle - interactionStyles[currStyle].r1Stop) /delta; //ratio between start and stop angle - will be used in graphs 
         innerRatio = 1- (innerRatio*-1);
         if(innerRatio > 2)
-        innerRatio = 0;
+            innerRatio = 0;
         
 
         //check the distance from the center
@@ -1325,7 +1329,7 @@ function reset() {
     displayG3 = false;
 
     if(G1.stopCondReached && G2.stopCondReached && G3.stopCondReached) {
-        experimentComplete = true;
+        endExperiment();
     } else 
         choosePOI();
 }
@@ -1339,7 +1343,7 @@ function choosePOI() {
 
     //prevent infinite loop & just end the experiment - should be caught somewhere else, but double check here
     if(G1.stopCondReached && G2.stopCondReached && G3.stopCondReached) {
-        experimentComplete = true;
+        endExperiment();
         return;
     }
 
@@ -1500,7 +1504,7 @@ var lastTouchPointLog = -1000000000;
 var participantID = "P0_" + makeid(5);
 
 var numTrials = 1000000000;
-var stopCondMax = 2; //how many times we can increase the stopCond at a number of points before disabling this graph
+var stopCondMax = 4; //how many times we can increase the stopCond at a number of points before disabling this graph
 
 var X = 0; //for readability
 var Y = 1; //for readability
@@ -1567,10 +1571,10 @@ var backgroundColour = "#1e1f26";
 var currStyle = 0;
 var interactionStyles = [];
 interactionStyles.push(new InteractionStyle(40, 220, 20, 280, 135, 250, 367, 155, 236, 383) );
-interactionStyles.push(new InteractionStyle(40, 220, 40, 320, 150, 247, 374, 160, 235, 385) );
+//interactionStyles.push(new InteractionStyle(40, 220, 40, 320, 150, 247, 374, 160, 235, 385) );
 interactionStyles.push(new InteractionStyle(33, 240, 10, 260, 150, 258, 360, 160, 270, 370) );
-interactionStyles.push(new InteractionStyle(30, 240, 10, 260, 155, 258, 360, 162, 270, 370) );
-interactionStyles.push(new InteractionStyle(20, 240, -20, 220, 155, 265, 345, 165, 255, 360) );
+//interactionStyles.push(new InteractionStyle(30, 240, 10, 260, 155, 258, 360, 162, 270, 370) );
+//interactionStyles.push(new InteractionStyle(20, 240, -20, 220, 155, 265, 345, 165, 255, 360) );
 
 let watch = new Watch(posX, posY, r, startAngle, stopAngle);
 
@@ -1591,7 +1595,7 @@ var indicatorPosY = 30;
 var indicator = new Indicator(indicatorPosX, indicatorPosY, 0.5, ""); 
 
 var lastCompleteTime;
-var timeToComplete = 2;
+var timeToComplete = 2.5;
 var timingIndicator = new TimingIndicator(indicatorPosX + 70, indicatorPosY, timeToComplete, "", null); 
 
 choosePOI();
@@ -1628,34 +1632,40 @@ function drawInBetweenTrials() {
     // if(numTrialsCompleted >= numTrials)
     //     experimentComplete = true;
 
+    displayG1 = false;
+    displayG2 = false;
+    displayG3 = false;
+
 
     ctx.fillStyle = "white";
     ctx.fillRect(0,0, 400, 400); //clear the background
 
     ctx.fillStyle = "yellow";
-    ctx.fillRect(0,0, 400, yDivider); //clear the background
+    ctx.fillRect(0,0, 400, 100); //clear the background
     
     ctx.fillStyle = "black";
     ctx.font = "24px Arial";
 
     var xPos = watch.x - 150;
-    var text = "Touch to start next trial...";
+    var text = "Press top right button to";
     ctx.fillText(text, xPos, watch.y);
 
+    var text = "start next trial...";
+    ctx.fillText(text, xPos, watch.y + 30);
     ctx.font = "18px Arial";
 
     text = "Number of trials completed: " + numTrialsCompleted;
-    ctx.fillText(text, xPos, watch.y + 30);
+    ctx.fillText(text, xPos, watch.y + 70);
 
     if(trialData.length > 0) {
         var text = "Last Trial Took: " + trialData[trialData.length-1].trialTime +"ms";
-        ctx.fillText(text, xPos, watch.y + 60);
+        ctx.fillText(text, xPos, watch.y + 90);
     }
 
     
     ctx.font = "12px Arial";
     text = "PID: " + participantID;
-    ctx.fillText(text, xPos, watch.y + 90);
+    ctx.fillText(text, xPos + 20, watch.y + 110);
 
 
     ctx.strokeStyle = "black";
@@ -1681,6 +1691,7 @@ function restartExperiment() {
     drawSettingsMenu = false;
     endExperimentIndicator.resetTimer();
     experimentComplete = false;
+    showExperimentComplete = false;
 
     participantIDNum = parseInt(participantID.charAt(1) ) + 1;
     console.log(participantIDNum);
@@ -1765,27 +1776,19 @@ function disableSettingsMenu() {
     drawSettingsMenu = false;
 }
 
-
-
-function increaseStopCond() {
-    stopCondMax++;
-    console.log(stopCondMax);
-    increaseStopCondIndicator.resetTimer();
-}
-function decreaseStopCond() { 
-    if(stopCondMax > 1) {
-        stopCondMax--;
-    }
-    decreaseStopCondIndicator.resetTimer();
-    console.log(stopCondMax);
-}
-
 function endExperiment() {
     experimentComplete = true;
+    showExperimentComplete = true;
+}
+
+function enableExperimentComplete() {
+
+    showExperimentComplete = true;
 }
 
 //some variables for page drawing
 var drawSettingsMenu = false;
+var showExperimentComplete = false;
 var enableSettingsButton = new Button(190, 100, "Settings", enableSettingsMenu);
 var disableSettingsButton = new Button(190, 270, "Back", disableSettingsMenu);
 var saveButton = new Button(60, 100, "Save", save);
@@ -1801,17 +1804,14 @@ var numTrialsButtonPosY = 200;
 var changeNumTrialsTime = 0.2;
 
 //a button to increase the stop condition
-var increaseStopCondButton = new Button(numTrialsButtonPosX, numTrialsButtonPosY, "", null);
-var increaseStopCondIndicator = new TimingIndicator(numTrialsButtonPosX+ increaseStopCondButton.width/2, numTrialsButtonPosY+ increaseStopCondButton.height/2, changeNumTrialsTime, "+", increaseStopCond);
+var nextStyleButton = new Button(numTrialsButtonPosX, numTrialsButtonPosY, "", null);
+var nextStyleIndicator = new TimingIndicator(numTrialsButtonPosX+ nextStyleButton.width/2, numTrialsButtonPosY+ nextStyleButton.height/2, changeNumTrialsTime, "+", nextStyle);
 
-var numTrialsButtonSpacing = 210;
-//a button to decrease the stop condition
-var decreaseStopCondButton = new Button(numTrialsButtonPosX + numTrialsButtonSpacing, numTrialsButtonPosY, "", null);
-var decreaseStopCondIndicator = new TimingIndicator(numTrialsButtonPosX +numTrialsButtonSpacing+ increaseStopCondButton.width/2, numTrialsButtonPosY +increaseStopCondButton.height/2, changeNumTrialsTime, "-", decreaseStopCond);
+
 
 
 var endExperiementButton = new Button(100, 80, "Quit", null);
-var endExperimentIndicator = new TimingIndicator(100 + 60, 80-20, 3, "", endExperiment);
+var endExperimentIndicator = new TimingIndicator(100 + 60, 80-20, 3, "", enableExperimentComplete);
 
 
 
@@ -1825,16 +1825,19 @@ function drawSettingsPage() {
 
     disableSettingsButton.draw();
 
-    increaseStopCondButton.draw();
-    increaseStopCondIndicator.draw();
-    increaseStopCondIndicator.update(increaseStopCondButton.clicked);
-    decreaseStopCondButton.draw();
-    decreaseStopCondIndicator.draw();
-    decreaseStopCondIndicator.update(decreaseStopCondButton.clicked);
+    // increaseStopCondButton.draw();
+    // increaseStopCondIndicator.draw();
+    // increaseStopCondIndicator.update(increaseStopCondButton.clicked);
+    nextStyleButton.draw();
+    nextStyleIndicator.draw();
+    nextStyleIndicator.update(nextStyleButton.clicked);
 
+    var size = "large";
+    if(currStyle == 1)
+        size = "small"
     ctx.font = "18px Arial";
-    var text = "# revisit for stop condition: " + stopCondMax;
-    ctx.fillText(text, numTrialsButtonPosX +decreaseStopCondButton.width + 5, numTrialsButtonPosY);
+    var text = "Interaction area size: " + size;
+    ctx.fillText(text, numTrialsButtonPosX +nextStyleButton.width + 5, numTrialsButtonPosY);
 }
 
 
@@ -1862,7 +1865,7 @@ function update() {
         updateTime();
 
         //draw here
-        if(experimentComplete) { //done all our trials
+        if(showExperimentComplete) { //done all our trials
             drawExperimentComplete();
         } else if(enableTrial) {
             drawTrial();
