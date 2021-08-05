@@ -599,6 +599,8 @@ class DynamicGraph extends Graph {
         this.height = 50;
         this.graphHeight = this.height - (this.padding *2);
 
+        console.log("this label is: " + this.label);
+
         this.numSegments = 4; //how many segments do we want the poi to be generated in
         //Will generate one poi in each segment before increasing the number of points
         this.segmentSelected = -1; //between 0 and numSegments-1 => if negative, no point to select
@@ -661,7 +663,7 @@ class DynamicGraph extends Graph {
         console.log("Generated at segment " + this.segmentSelected);
 
         this.poi = Math.floor((pointsPerSegment * this.segmentSelected) +  Math.floor(Math.random() * pointsPerSegment) ); //point we want to select 
-        console.log("point generated at pos " + this.poi);
+        console.log("Label: " + this.label + " point generated at pos " + this.poi);
         poiData.push(new PoiInfo(numTrialsCompleted, this.label, this.poi, this.segmentSelected) );
     }
 
@@ -1062,7 +1064,7 @@ function save() {
             trialTime.push(trialData[i].trialTime);
             G1Points.push(trialData[i].G1Points);
             G2Points.push(trialData[i].G2Points);
-            G3Points.push(trialData[i].G2Points);
+            G3Points.push(trialData[i].G3Points);
         }
 
         trialNum = [];
@@ -1116,29 +1118,7 @@ function save() {
 function writeData(jsonString) {
     if(tizen.ppm.checkPermission("http://tizen.org/privilege/mediastorage") == "PPM_ALLOW" ) {
         console.log("Already ahve permission.... going ahead with save" );
-            //we SHOULD have permission now
-            console.log("TRYING TO SAVE");
-            var path = 'experiment_'+makeid(3);
-            var dataFile, newDir;
-            tizen.filesystem.resolve('documents', function(dir) {
-                console.log("in resolve statement");
-                newDir = dir.createDirectory("Experiments");
-                console.log("Created file");
-                dataFile = newDir.createFile('Participant_' + participantID +  '.txt');
-                console.log("successfully created file");
-
-                dataFile.openStream(
-                    "w",
-                    function(fs) {
-                        console.log("Writing Data to file...");
-                        fs.write(jsonString); //fs.write(jsonString);
-                        fs.close();
-                        console.log("Done! File closed");
-                    }, function(e) {
-                        console.log("Error on writeData:\n" + e.message);
-                    }, "UTF-8" );
-            });
-        console.log("DONE? DID IT WORK?");
+        write();
 
     } else {
         console.log("Requesting file access");
@@ -1148,30 +1128,39 @@ function writeData(jsonString) {
 
 }
 
-function onsuccessPermissionWrite() {
+function write() {
     //we SHOULD have permission now
     console.log("TRYING TO SAVE");
-    var path = 'experiment_'+makeid(3);
+    //var path = 'experiment_'+makeid(3);
     var dataFile, newDir;
     tizen.filesystem.resolve('documents', function(dir) {
         console.log("in resolve statement");
-        newDir = dir.createDirectory("newDir");
-        dataFile = newDir.createFile('Participant_' + PID +  '.txt');
+        //newDir = dir.createDirectory("Experiments");
+        console.log("Created file");
+        var fileName  = 'Participant_' + participantID +  '.txt';
+        console.log("Filename: " + fileName);
+        dataFile = dir.createFile(fileName);
         console.log("successfully created file");
-        console.log("dataFile: " + dataFile);
 
         dataFile.openStream(
             "w",
             function(fs) {
                 console.log("Writing Data to file...");
-                fs.write("THIS IS A TEST>>>> PLEASE WRITE"); //fs.write(jsonString);
+                fs.write(jsonString);
                 fs.close();
                 console.log("Done! File closed");
             }, function(e) {
                 console.log("Error on writeData:\n" + e.message);
             }, "UTF-8" );
     });
-   console.log("DONE? DID IT WORK?");
+    console.log("DONE? DID IT WORK?");
+}
+
+function onsuccessPermissionWrite() {
+    //we SHOULD have permission now
+    console.log("TRYING TO SAVE");
+    var path = 'experiment_'+makeid(3);
+    write();
 
 }
 
