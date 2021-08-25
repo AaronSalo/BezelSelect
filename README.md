@@ -8,3 +8,7 @@
  To cycle through interaction styles press the 'back' button, or 'e' if on a web browser
  
  Can be loaded to smartwatch for testing via tizen studio - built originally for Samsung Gear S3 Frontier
+ Load the project into Tizen studio from File ->import->project-folder
+** Make sure the folder is named BasicUI** or it will not run on tizen studio
+_must_ be run on tizen 4.0 or saving will not work
+
