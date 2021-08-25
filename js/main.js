@@ -21,7 +21,7 @@ document.addEventListener('tizenhwkey', onHWKey);
 
 
 function onHWKey(e) {
-    if(e.keyName == "back") {
+    if(e.keyName == "back" && touchEnded) {
         checkEnableTrial();
     }
 }
@@ -940,22 +940,35 @@ class Indicator {
 //small changes to functionality
 //on complete we will call a function (if there is one set)
 class TimingIndicator extends Indicator {
-    constructor(x, y, timeToComplete, label, func){
+    constructor(x, y, timeToComplete, label, func, reset){
         super(x, y, timeToComplete, label);
         this.func = func;
         this.completeLength = 0.5; //how long to hold on the complete 
         this.completeElapsed = 0;
+        this.reset = reset; //should the timer autoreset
+        this.executed = false;
     }
 
     onComplete() {
-        if(this.func != null) {
+        if(!this.executed && this.func != null) {
             this.func();
+            this.executed = true;
         }
-        this.resetTimer();
+
+        if(this.reset)
+            this.resetTimer();
+    }
+
+    //reset this timer
+    resetTimer() {
+        this.timeSelected = 0;
+        this.completeElapsed = 0;
+        this.complete = false;
+        this.executed = false;
     }
 }
 
-
+ 
 //makes the logging of touchPoints more readable and understandable
 class TouchPoint {
     constructor(x, y, trialNum) {
@@ -1504,7 +1517,7 @@ var lastTouchPointLog = -1000000000;
 var participantID = "P0_" + makeid(5);
 
 var numTrials = 1000000000;
-var stopCondMax = 4; //how many times we can increase the stopCond at a number of points before disabling this graph
+var stopCondMax = 3; //how many times we can increase the stopCond at a number of points before disabling this graph
 
 var X = 0; //for readability
 var Y = 1; //for readability
@@ -1570,9 +1583,9 @@ var backgroundColour = "#1e1f26";
 //For reference: constructor(startAngle, stopAngle, xCurve, yCurve, r1, r1Start, r1Stop, r2, r2Start, r2Stop) {
 var currStyle = 0;
 var interactionStyles = [];
-interactionStyles.push(new InteractionStyle(40, 220, 20, 280, 135, 250, 367, 155, 236, 383) );
+interactionStyles.push(new InteractionStyle(40, 220, 20, 280, 135, 250, 367, 152, 236, 383) );
+interactionStyles.push(new InteractionStyle(33, 240, 10, 260, 145, 258, 360, 155, 270, 370) );
 //interactionStyles.push(new InteractionStyle(40, 220, 40, 320, 150, 247, 374, 160, 235, 385) );
-interactionStyles.push(new InteractionStyle(33, 240, 10, 260, 150, 258, 360, 160, 270, 370) );
 //interactionStyles.push(new InteractionStyle(30, 240, 10, 260, 155, 258, 360, 162, 270, 370) );
 //interactionStyles.push(new InteractionStyle(20, 240, -20, 220, 155, 265, 345, 165, 255, 360) );
 
@@ -1595,8 +1608,8 @@ var indicatorPosY = 30;
 var indicator = new Indicator(indicatorPosX, indicatorPosY, 0.5, ""); 
 
 var lastCompleteTime;
-var timeToComplete = 2.5;
-var timingIndicator = new TimingIndicator(indicatorPosX + 70, indicatorPosY, timeToComplete, "", null); 
+var timeToComplete = 2;
+var timingIndicator = new TimingIndicator(indicatorPosX + 70, indicatorPosY, timeToComplete, "", null, false); 
 
 choosePOI();
 
@@ -1698,9 +1711,9 @@ function restartExperiment() {
     participantID = "P" + participantIDNum + "_" + makeid(5);
 
     //just reinstantiate the graphs
-    G1 = new DynamicGraph(xPos, yPos, startingNumPoints, innerArcColour); //pie chart divided 
-    G2 = new DynamicGraph(xPos, yPos + ySpacing, startingNumPoints, middleArcColour); //bar graph
-    G3 = new DynamicGraph(xPos, yPos + (ySpacing *2) , startingNumPoints, outerArcColour); //line graph
+    G1 = new DynamicGraph(xPos, yPos, startingNumPoints, innerArcColour, "G1"); //pie chart divided 
+    G2 = new DynamicGraph(xPos, yPos + ySpacing, startingNumPoints, middleArcColour, "G2"); //bar graph
+    G3 = new DynamicGraph(xPos, yPos + (ySpacing *2) , startingNumPoints, outerArcColour, "G3"); //line graph
     choosePOI()
     //reset the data arrays
     trialData = [];
@@ -1796,22 +1809,22 @@ var saveButton = new Button(60, 100, "Save", save);
 var restartButtonPosX = 190;
 var restartButtonPosY = 100;
 var restartButton = new Button(restartButtonPosX, restartButtonPosY, "Restart", null);
-var restartIndicator = new TimingIndicator(restartButtonPosX + 60, restartButtonPosY-20, 3, "R", restartExperiment);
+var restartIndicator = new TimingIndicator(restartButtonPosX + 60, restartButtonPosY-20, 3, "R", restartExperiment, true);
 var timeToRestart = 3;
 
 var numTrialsButtonPosX = 30;
 var numTrialsButtonPosY = 200;
-var changeNumTrialsTime = 0.2;
+var changeStyleTime = 0.5;
 
 //a button to increase the stop condition
 var nextStyleButton = new Button(numTrialsButtonPosX, numTrialsButtonPosY, "", null);
-var nextStyleIndicator = new TimingIndicator(numTrialsButtonPosX+ nextStyleButton.width/2, numTrialsButtonPosY+ nextStyleButton.height/2, changeNumTrialsTime, "+", nextStyle);
+var nextStyleIndicator = new TimingIndicator(numTrialsButtonPosX+ nextStyleButton.width/2, numTrialsButtonPosY+ nextStyleButton.height/2, changeStyleTime, "+", nextStyle, true);
 
 
 
 
 var endExperiementButton = new Button(100, 80, "Quit", null);
-var endExperimentIndicator = new TimingIndicator(100 + 60, 80-20, 3, "", enableExperimentComplete);
+var endExperimentIndicator = new TimingIndicator(100 + 60, 80-20, 3, "", enableExperimentComplete, true);
 
 
 
